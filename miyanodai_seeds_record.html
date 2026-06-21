@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>みやのだいSEEDS 記録作成アシスタント</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --seeds-brown: #4A2C0C;
+  --seeds-crimson: #B03060;
+  --seeds-gold: #C89B1A;
+  --seeds-cream: #FBF7F2;
+  --seeds-light-rose: #F5E8EE;
+}
+body { background: var(--seeds-cream); font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Meiryo', sans-serif; }
+.app { max-width: 480px; margin: 0 auto; padding: 0 0 3rem; min-height: 100vh; }
+
+/* ── Header ── */
+.app-header { background: var(--seeds-brown); padding: 0.875rem 1.25rem; position: sticky; top: 0; z-index: 10; }
+.header-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.header-logo-wrap { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.logo-img { height: 32px; width: auto; display: block; filter: brightness(0) invert(1); opacity: 0.95; }
+.header-divider { width: 1px; height: 28px; background: rgba(255,255,255,0.25); flex-shrink: 0; }
+.header-sub { font-size: 10px; color: rgba(255,255,255,0.7); line-height: 1.4; }
+.timer-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex-shrink: 0; }
+.timer-display { font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; color: #fff; line-height: 1; }
+.timer-display.warn { color: #F5C842; }
+.timer-display.over { color: #FF7B7B; }
+.timer-label { font-size: 9px; color: rgba(255,255,255,0.55); text-align: right; }
+.timer-bar-wrap { margin-top: 8px; height: 2px; background: rgba(255,255,255,0.15); border-radius: 99px; overflow: hidden; }
+.timer-bar { height: 100%; width: 0%; background: var(--seeds-gold); border-radius: 99px; transition: width 1s linear, background 0.3s; }
+
+/* ── Form ── */
+.section { padding: 1rem 1.25rem 0; }
+.section-label { font-size: 10px; font-weight: 600; color: var(--seeds-brown); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; opacity: 0.6; }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 12px; color: var(--seeds-brown); opacity: 0.7; margin-bottom: 4px; }
+.field input, .field textarea {
+  width: 100%; font-size: 15px; padding: 10px 12px;
+  border: 1px solid rgba(74,44,12,0.15); border-radius: 10px;
+  background: #fff; color: var(--seeds-brown);
+  font-family: inherit; transition: border-color 0.15s;
+}
+.field input:focus, .field textarea:focus {
+  outline: none; border-color: var(--seeds-crimson);
+  box-shadow: 0 0 0 3px rgba(176,48,96,0.08);
+}
+.field textarea { resize: vertical; min-height: 88px; line-height: 1.6; }
+
+/* ── Question blocks ── */
+.q-block { background: #fff; border-radius: 12px; border: 1px solid rgba(74,44,12,0.1); padding: 1rem; margin-bottom: 10px; transition: opacity 0.3s; }
+.q-block.optional { border-left: 3px solid rgba(74,44,12,0.15); }
+.q-block.internal { border-left: 3px solid var(--seeds-gold); background: #FFFDF7; }
+.q-block.dimmed { opacity: 0.45; background: #F5F3F0; }
+.q-block.dimmed textarea { background: #EEECE9; color: rgba(74,44,12,0.4); }
+.q-num { font-size: 10px; font-weight: 600; color: var(--seeds-crimson); margin-bottom: 3px; letter-spacing: 0.04em; }
+.q-text { font-size: 13px; font-weight: 600; color: var(--seeds-brown); margin-bottom: 8px; line-height: 1.5; }
+.q-hint { font-size: 11px; color: rgba(74,44,12,0.5); margin-bottom: 8px; line-height: 1.6; }
+.q-badge { display: inline-block; font-size: 10px; padding: 2px 9px; border-radius: 99px; margin-bottom: 8px; background: #FFF5D6; color: #7A5800; border: 1px solid #E8C84A; }
+.q-badge-opt { display: inline-block; font-size: 10px; padding: 2px 9px; border-radius: 99px; margin-bottom: 8px; background: #F0EDE8; color: rgba(74,44,12,0.55); border: 1px solid rgba(74,44,12,0.15); }
+.q-badge-dimmed { display: none; font-size: 10px; padding: 2px 9px; border-radius: 99px; margin-bottom: 8px; background: #E8E4DE; color: rgba(74,44,12,0.45); border: 1px solid rgba(74,44,12,0.1); }
+.q-block.dimmed .q-badge-opt { display: none; }
+.q-block.dimmed .q-badge-dimmed { display: inline-block; }
+
+/* ── Tags ── */
+.tag-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.tag { display: inline-flex; align-items: center; gap: 4px; background: var(--seeds-light-rose); color: var(--seeds-crimson); font-size: 12px; padding: 4px 10px; border-radius: 99px; border: 1px solid rgba(176,48,96,0.25); }
+.tag button { background: none; border: none; cursor: pointer; color: var(--seeds-crimson); font-size: 15px; padding: 0; line-height: 1; }
+.tag-add-row { display: flex; gap: 6px; }
+.tag-add-row input { flex: 1; font-size: 13px; padding: 8px 10px; }
+.tag-add-btn { padding: 8px 14px; font-size: 13px; white-space: nowrap; cursor: pointer; border: 1px solid rgba(74,44,12,0.2); border-radius: 10px; background: var(--seeds-cream); color: var(--seeds-brown); font-family: inherit; }
+.tag-add-btn:active { background: var(--seeds-light-rose); }
+
+/* ── Generate button ── */
+.gen-btn { width: calc(100% - 2.5rem); margin: 1.25rem 1.25rem 0; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 15px; font-size: 15px; font-weight: 600; cursor: pointer; border-radius: 12px; border: none; background: var(--seeds-crimson); color: #fff; font-family: inherit; letter-spacing: 0.02em; transition: opacity 0.15s, transform 0.1s; }
+.gen-btn:active { transform: scale(0.98); opacity: 0.9; }
+.gen-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ── Loading ── */
+.loading { display: none; text-align: center; padding: 4rem 1.25rem; }
+.loading.show { display: block; }
+.sprout { font-size: 40px; animation: grow 1.2s ease-in-out infinite alternate; display: block; margin-bottom: 16px; }
+@keyframes grow { from { transform: scale(0.85); } to { transform: scale(1.1); } }
+.loading-text { font-size: 14px; color: var(--seeds-brown); opacity: 0.7; }
+.loading-sub { font-size: 12px; color: rgba(74,44,12,0.45); margin-top: 6px; }
+
+/* ── Output tabs ── */
+.tab-bar { display: none; margin: 1.25rem 1.25rem 0; gap: 6px; }
+.tab-bar.show { display: flex; }
+.tab { flex: 1; padding: 9px 4px; font-size: 11px; text-align: center; cursor: pointer; color: rgba(74,44,12,0.5); border-radius: 10px; border: 1px solid rgba(74,44,12,0.12); background: #fff; font-family: inherit; transition: all 0.15s; white-space: nowrap; }
+.tab.active { background: var(--seeds-crimson); color: #fff; border-color: var(--seeds-crimson); font-weight: 600; }
+.out-panel { display: none; padding: 0 1.25rem; }
+.out-panel.show { display: block; }
+.out-card { background: #fff; border: 1px solid rgba(74,44,12,0.1); border-radius: 12px; padding: 1rem 1.25rem; margin-top: 1rem; white-space: pre-wrap; font-size: 14px; line-height: 1.85; color: var(--seeds-brown); }
+.char-hint { font-size: 11px; color: rgba(74,44,12,0.4); margin-top: 6px; text-align: right; }
+.copy-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 10px; padding: 11px; font-size: 13px; cursor: pointer; border-radius: 10px; border: 1px solid rgba(74,44,12,0.15); background: #fff; color: var(--seeds-brown); font-family: inherit; transition: background 0.12s; }
+.copy-btn:hover { background: var(--seeds-cream); }
+.copy-btn.copied { color: var(--seeds-crimson); border-color: var(--seeds-crimson); background: var(--seeds-light-rose); }
+
+/* ── Results / Reset ── */
+.result-time { font-size: 12px; color: var(--seeds-brown); opacity: 0.6; text-align: center; margin-top: 1rem; }
+.reset-btn { display: none; width: calc(100% - 2.5rem); margin: 0.75rem 1.25rem 0; padding: 11px; font-size: 13px; cursor: pointer; border-radius: 10px; border: 1px solid rgba(74,44,12,0.15); background: transparent; color: rgba(74,44,12,0.5); font-family: inherit; }
+.reset-btn.show { display: block; }
+
+/* ── Error ── */
+.err { display: none; background: #FFF0F0; border: 1px solid #FFB3B3; border-radius: 10px; padding: 12px 14px; margin: 1rem 1.25rem 0; font-size: 13px; color: #A32D2D; }
+.err.show { display: block; }
+
+/* ── Footer ── */
+.footer { text-align: center; padding: 2rem 1.25rem 1rem; font-size: 10px; color: rgba(74,44,12,0.35); line-height: 1.8; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="app-header">
+    <div class="header-top">
+      <div class="header-logo-wrap">
+        <!-- ロゴ画像をここに配置してください（logo.pngをHTMLと同じフォルダに入れる） -->
+        <img class="logo-img" src="logo.png" alt="みやのだいSEEDS"
+          onerror="this.style.display='none'; document.getElementById('logo-text').style.display='block'">
+        <span id="logo-text" style="display:none; color:#fff; font-size:14px; font-weight:600;">みやのだいSEEDS</span>
+        <div class="header-divider"></div>
+        <div class="header-sub">記録作成<br>アシスタント</div>
+      </div>
+      <div class="timer-wrap">
+        <div class="timer-display" id="timer-display">0:00</div>
+        <div class="timer-label">目標 5:00</div>
+      </div>
+    </div>
+    <div class="timer-bar-wrap">
+      <div class="timer-bar" id="timer-bar"></div>
+    </div>
+  </div>
+
+  <div id="form-area">
+    <div class="section">
+      <div class="section-label">基本情報</div>
+      <div class="field">
+        <label>児童名</label>
+        <input type="text" id="child-name" placeholder="例：たろう くん">
+      </div>
+    </div>
+
+    <div class="section" style="margin-top:0.25rem;">
+      <div class="section-label">質問</div>
+
+      <div class="q-block">
+        <div class="q-num">質問①</div>
+        <div class="q-text">今日のねらいは何でしたか？</div>
+        <div class="q-hint">例：お友だちとの関わり／言葉で気持ちを伝える／活動への参加<br>入力してEnterまたは「追加」ボタンで複数登録できます</div>
+        <div class="tag-wrap" id="goals-tags"></div>
+        <div class="tag-add-row">
+          <input type="text" id="goal-input" placeholder="ねらいを入力…">
+          <button class="tag-add-btn" onclick="addGoal()">追加</button>
+        </div>
+      </div>
+
+      <div class="q-block">
+        <div class="q-num">質問②</div>
+        <div class="q-text">そのねらいに対して見られた姿を教えてください。</div>
+        <textarea id="q2" placeholder="子どもの様子や行動を具体的に教えてください"></textarea>
+      </div>
+
+      <div class="q-block">
+        <div class="q-num">質問③</div>
+        <div class="q-text">どのような支援や関わりを行いましたか？</div>
+        <textarea id="q3" placeholder="行った支援・声かけ・環境調整などを教えてください"></textarea>
+      </div>
+
+      <div class="q-block optional" id="q4-block">
+        <div class="q-badge-opt">⏱ 時間があるときだけ記入</div>
+        <div class="q-badge-dimmed">⏰ 5分超過 — スキップ推奨（記入は可能です）</div>
+        <div class="q-num">質問④</div>
+        <div class="q-text">保護者に伝えたいエピソードや様子を教えてください。</div>
+        <textarea id="q4" placeholder="保護者が喜ぶ具体的な場面やエピソードを教えてください"></textarea>
+      </div>
+
+      <div class="q-block internal">
+        <div class="q-badge">🔒 施設内記録のみ・保護者文書には含まれません</div>
+        <div class="q-num">質問⑤</div>
+        <div class="q-text">施設内記録として残しておきたいことを教えてください。</div>
+        <textarea id="q5" placeholder="気になった点、職員間で引き継ぎたいこと、今後の支援に活かしたいことなど"></textarea>
+      </div>
+    </div>
+
+    <div class="err" id="err-msg"></div>
+
+    <button class="gen-btn" id="gen-btn" onclick="generate()">
+      🌱 3種類の記録を生成する
+    </button>
+
+    <div class="footer">
+      みやのだいSEEDS 記録作成アシスタント<br>
+      © KaitoHata　All rights reserved.
+    </div>
+  </div>
+
+  <div class="loading" id="loading">
+    <span class="sprout">🌱</span>
+    <div class="loading-text">記録を生成中です…</div>
+    <div class="loading-sub">少々お待ちください</div>
+  </div>
+
+  <div id="output-area">
+    <div class="tab-bar" id="tab-bar">
+      <div class="tab active" onclick="switchTab(0)" id="tab0">保護者向け</div>
+      <div class="tab" onclick="switchTab(1)" id="tab1">内部施設記録</div>
+      <div class="tab" onclick="switchTab(2)" id="tab2">担任共有用</div>
+    </div>
+    <div class="out-panel" id="out0">
+      <div class="out-card" id="text0"></div>
+      <button class="copy-btn" id="copy0" onclick="copyText(0)">📋 コピー</button>
+    </div>
+    <div class="out-panel" id="out1">
+      <div class="out-card" id="text1"></div>
+      <button class="copy-btn" id="copy1" onclick="copyText(1)">📋 コピー</button>
+    </div>
+    <div class="out-panel" id="out2">
+      <div class="out-card" id="text2"></div>
+      <div class="char-hint" id="char2"></div>
+      <button class="copy-btn" id="copy2" onclick="copyText(2)">📋 コピー</button>
+    </div>
+    <div class="result-time" id="result-time"></div>
+    <button class="reset-btn" id="reset-btn" onclick="reset()">🔄 新しい記録を作る</button>
+    <div class="footer">
+      みやのだいSEEDS 記録作成アシスタント<br>
+      © KaitoHata　All rights reserved.
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  ★ APIキーをここに入力してください ★
+//  Anthropic Console (https://console.anthropic.com) で取得
+// ============================================================
+const API_KEY = 'ここにAPIキーを貼り付けてください';
+// ============================================================
+
+let goals = [], outputs = ['','',''];
+let timerStart = Date.now(), timerInterval = null, finalSeconds = 0;
+const GOAL_SEC = 300;
+
+function startTimer() {
+  timerStart = Date.now();
+  timerInterval = setInterval(updateTimer, 1000);
+  updateTimer();
+}
+function updateTimer() {
+  const elapsed = Math.floor((Date.now() - timerStart) / 1000);
+  const m = Math.floor(elapsed / 60), s = elapsed % 60;
+  const disp = document.getElementById('timer-display');
+  const bar = document.getElementById('timer-bar');
+  const q4block = document.getElementById('q4-block');
+  disp.textContent = m + ':' + String(s).padStart(2, '0');
+  bar.style.width = Math.min((elapsed / GOAL_SEC) * 100, 100) + '%';
+  disp.className = 'timer-display';
+  if (elapsed >= GOAL_SEC) {
+    disp.classList.add('over');
+    bar.style.background = '#FF7B7B';
+    q4block.classList.add('dimmed');
+  } else if (elapsed >= GOAL_SEC * 0.8) {
+    disp.classList.add('warn');
+    bar.style.background = '#F5C842';
+  } else {
+    q4block.classList.remove('dimmed');
+  }
+  finalSeconds = elapsed;
+}
+function stopTimer() { if (timerInterval) { clearInterval(timerInterval); timerInterval = null; } }
+function formatTime(sec) { return Math.floor(sec / 60) + '分' + String(sec % 60).padStart(2, '0') + '秒'; }
+
+document.getElementById('goal-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addGoal(); }
+});
+function addGoal() {
+  const v = document.getElementById('goal-input').value.trim();
+  if (!v) return;
+  goals.push(v);
+  document.getElementById('goal-input').value = '';
+  renderGoals();
+}
+function removeGoal(i) { goals.splice(i, 1); renderGoals(); }
+function renderGoals() {
+  document.getElementById('goals-tags').innerHTML = goals.map((g, i) =>
+    `<span class="tag">${g}<button onclick="removeGoal(${i})" aria-label="削除">×</button></span>`
+  ).join('');
+}
+function switchTab(i) {
+  [0,1,2].forEach(j => {
+    document.getElementById('tab'+j).classList.toggle('active', j===i);
+    document.getElementById('out'+j).classList.toggle('show', j===i);
+  });
+}
+function copyText(i) {
+  navigator.clipboard.writeText(outputs[i]).then(() => {
+    const btn = document.getElementById('copy'+i);
+    btn.classList.add('copied');
+    btn.textContent = '✅ コピーしました';
+    setTimeout(() => { btn.classList.remove('copied'); btn.textContent = '📋 コピー'; }, 2000);
+  });
+}
+function reset() {
+  goals = []; outputs = ['','',''];
+  document.getElementById('goals-tags').innerHTML = '';
+  ['child-name','goal-input','q2','q3','q4','q5'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('form-area').style.display = '';
+  document.getElementById('tab-bar').classList.remove('show');
+  document.getElementById('reset-btn').classList.remove('show');
+  document.getElementById('result-time').textContent = '';
+  [0,1,2].forEach(i => document.getElementById('out'+i).classList.remove('show'));
+  document.getElementById('gen-btn').disabled = false;
+  document.getElementById('timer-display').className = 'timer-display';
+  document.getElementById('timer-bar').style.cssText = 'width:0%;background:var(--seeds-gold)';
+  document.getElementById('q4-block').classList.remove('dimmed');
+  startTimer();
+  window.scrollTo(0, 0);
+}
+function showErr(msg) { const e = document.getElementById('err-msg'); e.textContent = msg; e.classList.add('show'); }
+function hideErr() { document.getElementById('err-msg').classList.remove('show'); }
+
+async function generate() {
+  hideErr();
+
+  if (!API_KEY || API_KEY === 'ここにAPIキーを貼り付けてください') {
+    showErr('APIキーが設定されていません。HTMLファイルの API_KEY を設定してください。');
+    return;
+  }
+
+  const childName = document.getElementById('child-name').value.trim();
+  const q2 = document.getElementById('q2').value.trim();
+  const q3 = document.getElementById('q3').value.trim();
+  const q4 = document.getElementById('q4').value.trim();
+  const q5 = document.getElementById('q5').value.trim();
+
+  if (!childName) { showErr('児童名を入力してください。'); return; }
+  if (!goals.length) { showErr('ねらいを1つ以上追加してください。'); return; }
+  if (!q2) { showErr('質問②（見られた姿）を入力してください。'); return; }
+
+  document.getElementById('gen-btn').disabled = true;
+  document.getElementById('form-area').style.display = 'none';
+  document.getElementById('loading').classList.add('show');
+
+  const prompt = `以下の情報をもとに、3種類の記録を作成してください。必ず①②③の順にすべて出力してください。
+
+【児童名】${childName}
+【質問①】今日のねらい
+${goals.map(g => '・' + g).join('\n')}
+【質問②】ねらいに対して見られた姿
+${q2}
+【質問③】行った支援や関わり
+${q3 || '（未入力）'}
+【質問④】保護者に伝えたいエピソード（入力があれば保護者向け・内部記録に使用）
+${q4 || '（未入力・省略）'}
+【質問⑤】施設内記録として残しておきたいこと（内部記録・担任共有用のみ。保護者向けには絶対含めないこと）
+${q5 || '（未入力）'}
+
+必ず以下の区切り文字で出力してください：
+
+===保護者向け===
+（質問⑤の内容は一切含めないこと）
+
+===内部施設記録===
+（冒頭に【明日につながる一言ねらい】を記載。質問⑤も含めてよい）
+
+===担任共有用===
+（250文字以内。質問⑤も含めてよい）`;
+
+  const system = `あなたは児童発達支援施設「みやのだいSEEDS」の記録作成支援AIです。職員が入力した内容から3種類の記録を作成します。
+
+【共通ルール】
+・創作禁止。入力にない事実は追加しない。推測・憶測で補わない。
+・職員の言葉をできるだけそのまま活かす。
+
+【①保護者向け】
+・冒頭に「【今日のねらい】」として箇条書きでねらいを記載。
+・肯定的で温かく、保護者が様子をイメージできる具体的な内容。
+・エピソードを省略しない。「できた」「できなかった」などの評価表現は使わない。
+・「〜する姿がみられました」「〜と伝えてくれました」を中心に記載。
+・「支援していきます」禁止。今後は「〜に関わっていきます」を使用。
+・【重要】質問⑤の内容は一切含めてはならない。
+・質問④が未入力の場合はエピソード欄を省略し質問②③の内容から作成。
+
+【②内部施設記録】
+・1行目：【明日につながる一言ねらい】○○○（今日の様子をふまえた明日以降の最重要支援ポイントを一言で。例：「感情を言葉にする機会を増やす」「切り替え時の予告を徹底する」）
+・次に「【専門的支援実施記録】」と記載。
+・本文：事実のみ。感情的表現・評価表現禁止。5W1Hが分かる内容。
+・良い場面も困り感も省略しない。
+・ねらいごとに整理し、各ねらいに「【対応する支援計画項目】」を記載。
+・質問⑤も含めて記載する。
+・最後に「有効だった関わり」「見られた変化」「今後の視点」を簡潔に記載。
+
+【③担任共有用】
+・250文字以内（厳守）。指示的表現・評価禁止。
+・「どこで」「誰と」「何をして」「どのようなやり取りがあったか」が分かる情景描写。
+・絵文字使用可。支援の意図や気づきも自然に含める。質問⑤も含めてよい。`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2048,
+        system,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || 'APIエラー: ' + res.status);
+    }
+
+    const data = await res.json();
+    const text = data.content.map(b => b.text || '').join('');
+
+    const p1 = text.indexOf('===保護者向け===');
+    const p2 = text.indexOf('===内部施設記録===');
+    const p3 = text.indexOf('===担任共有用===');
+    if (p1 < 0 || p2 < 0 || p3 < 0) throw new Error('生成形式エラー。もう一度お試しください。');
+
+    outputs[0] = text.slice(p1 + 9, p2).trim();
+    outputs[1] = text.slice(p2 + 10, p3).trim();
+    outputs[2] = text.slice(p3 + 9).trim();
+
+    stopTimer();
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('text0').textContent = outputs[0];
+    document.getElementById('text1').textContent = outputs[1];
+    document.getElementById('text2').textContent = outputs[2];
+    document.getElementById('char2').textContent = outputs[2].length + '文字';
+    document.getElementById('tab-bar').classList.add('show');
+    document.getElementById('reset-btn').classList.add('show');
+
+    const ok = finalSeconds <= GOAL_SEC;
+    document.getElementById('result-time').textContent =
+      (ok ? '✅ ' : '⏱ ') + '記録完了！所要時間 ' + formatTime(finalSeconds) + (ok ? '（目標達成🌱）' : '（あともう少し！）');
+
+    switchTab(0);
+
+  } catch (e) {
+    stopTimer();
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('form-area').style.display = '';
+    document.getElementById('gen-btn').disabled = false;
+    showErr('エラーが発生しました：' + e.message);
+    startTimer();
+  }
+}
+
+startTimer();
+</script>
+</body>
+</html>
