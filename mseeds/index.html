@@ -40,6 +40,13 @@ body { background: var(--seeds-cream); font-family: -apple-system, BlinkMacSyste
 .timer-bar-wrap { margin-top: 8px; height: 2px; background: rgba(255,255,255,0.15); border-radius: 99px; overflow: hidden; }
 .timer-bar { height: 100%; width: 0%; background: var(--seeds-gold); border-radius: 99px; transition: width 1s linear, background 0.3s; }
 
+/* API key row */
+.apikey-row { display: flex; align-items: center; gap: 8px; background: #FFF8E1; border: 1px solid rgba(200,155,26,0.45); border-radius: 10px; padding: 10px 12px; margin: 0.75rem 1.25rem 0; }
+.apikey-row label { font-size: 11px; color: #7A5800; white-space: nowrap; font-weight: 600; flex-shrink: 0; }
+.apikey-row input { flex: 1; font-size: 14px; padding: 6px 10px; border: 1px solid rgba(74,44,12,0.2); border-radius: 8px; background: #fff; color: var(--seeds-brown); font-family: inherit; min-width: 0; }
+.apikey-row input:focus { outline: none; border-color: var(--seeds-gold); }
+.apikey-status { font-size: 14px; flex-shrink: 0; min-width: 18px; text-align: center; }
+
 /* Form */
 .section { padding: 1rem 1.25rem 0; }
 .section-label { font-size: 10px; font-weight: 600; color: var(--seeds-brown); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; opacity: 0.6; }
@@ -104,9 +111,12 @@ body { background: var(--seeds-cream); font-family: -apple-system, BlinkMacSyste
 .staff-chip label { display: inline-block; padding: 8px 16px; border-radius: 99px; border: 1.5px solid rgba(74,44,12,0.2); font-size: 14px; font-weight: 700; color: var(--seeds-brown); cursor: pointer; background: #fff; transition: all 0.15s; letter-spacing: 0.04em; }
 .staff-chip input:checked + label { background: var(--seeds-crimson); color: #fff; border-color: var(--seeds-crimson); }
 
-/* Test button */
+/* Sub buttons */
 .test-btn { width: calc(100% - 2.5rem); margin: 0.6rem 1.25rem 0; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 11px; font-size: 13px; cursor: pointer; border-radius: 10px; border: 1px dashed rgba(74,44,12,0.3); background: transparent; color: rgba(74,44,12,0.55); font-family: inherit; }
 .test-btn:active { background: var(--seeds-light-rose); }
+
+/* iOS hint / install hint */
+.ios-hint { margin: 0.4rem 1.25rem 0; background: #FFF8E1; border: 1px solid #E8C84A; border-radius: 10px; padding: 10px 14px; font-size: 12px; color: #7A5800; line-height: 1.8; }
 
 /* Test Modal */
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; overflow-y: auto; padding: 1rem; }
@@ -125,7 +135,7 @@ body { background: var(--seeds-cream); font-family: -apple-system, BlinkMacSyste
 .test-parsed-item { background: #F9F6F2; border-left: 3px solid var(--seeds-crimson); border-radius: 6px; padding: 8px 10px; font-size: 12px; line-height: 1.6; color: var(--seeds-brown); margin-bottom: 8px; max-height: 120px; overflow-y: auto; white-space: pre-wrap; }
 .modal-copy-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 10px; padding: 10px; font-size: 13px; cursor: pointer; border-radius: 8px; border: 1px solid rgba(74,44,12,0.15); background: var(--seeds-cream); color: var(--seeds-brown); font-family: inherit; }
 
-/* Result area (inline) */
+/* Result area */
 .result-area { padding-bottom: 3rem; }
 .time-banner { font-size: 15px; font-weight: 700; color: var(--seeds-crimson); text-align: center; margin: 14px 1.25rem 0; padding: 12px 16px; background: var(--seeds-light-rose); border-radius: 12px; border: 2px solid rgba(176,48,96,0.2); line-height: 1.6; }
 .result-tabs { display: flex; gap: 6px; margin: 14px 1.25rem 0; }
@@ -140,7 +150,6 @@ body { background: var(--seeds-cream); font-family: -apple-system, BlinkMacSyste
 .back-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: calc(100% - 2.5rem); margin: 16px 1.25rem 0; padding: 13px; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 10px; border: 2px solid rgba(74,44,12,0.25); background: var(--seeds-cream); color: var(--seeds-brown); font-family: inherit; touch-action: manipulation; }
 
 .footer { text-align: center; padding: 2rem 1.25rem 1rem; font-size: 10px; color: rgba(74,44,12,0.35); line-height: 1.8; }
-.ios-hint { margin: 0.4rem 1.25rem 0; background: #FFF8E1; border: 1px solid #E8C84A; border-radius: 10px; padding: 10px 14px; font-size: 12px; color: #7A5800; line-height: 1.8; }
 </style>
 </head>
 <body>
@@ -167,6 +176,16 @@ body { background: var(--seeds-cream); font-family: -apple-system, BlinkMacSyste
 
   <!-- フォームエリア -->
   <div id="form-area">
+
+    <!-- APIキー入力（初回のみ・自動保存） -->
+    <div class="apikey-row">
+      <label>🔑 APIキー</label>
+      <input type="password" id="api-key"
+        placeholder="sk-... （初回のみ入力・自動保存されます）"
+        oninput="onApiKeyInput()">
+      <span class="apikey-status" id="apikey-status"></span>
+    </div>
+
     <div class="section">
       <div class="section-label">基本情報</div>
       <div class="field">
@@ -234,11 +253,9 @@ body { background: var(--seeds-cream); font-family: -apple-system, BlinkMacSyste
     <div class="err" id="err-msg"></div>
     <div class="success" id="success-msg"></div>
 
-    <button class="gen-btn" id="gen-btn" onclick="generate()">
-      🌱 3種類の記録を生成する
-    </button>
+    <button class="gen-btn" id="gen-btn" onclick="generate()">🌱 3種類の記録を生成する</button>
     <button class="test-btn" onclick="openTestModal()">🧪 API接続テスト</button>
-    <button class="test-btn" onclick="checkPopup()" style="margin-top:0.4rem;">🪟 ポップアップ許可確認（記入前に確認）</button>
+    <button class="test-btn" onclick="checkPopup()" style="margin-top:0.4rem;">🪟 ポップアップ許可確認</button>
     <button class="test-btn" id="install-btn" onclick="installApp()" style="display:none;margin-top:0.4rem;">📲 ホーム画面に追加する</button>
     <div class="ios-hint" id="ios-hint" style="display:none;">
       📲 ホーム画面に追加するには：<br>
@@ -259,7 +276,7 @@ body { background: var(--seeds-cream); font-family: -apple-system, BlinkMacSyste
     <div class="loading-sub">少々お待ちください</div>
   </div>
 
-  <!-- 結果エリア（インライン表示・ポップアップ不要） -->
+  <!-- 結果エリア（インライン表示） -->
   <div id="result-area" style="display:none;" class="result-area">
     <div class="time-banner" id="time-banner"></div>
     <div class="result-tabs">
@@ -267,7 +284,6 @@ body { background: var(--seeds-cream); font-family: -apple-system, BlinkMacSyste
       <button class="rtab" id="rtab-1" onclick="sw(1)">内部施設記録</button>
       <button class="rtab" id="rtab-2" onclick="sw(2)">担任共有用</button>
     </div>
-
     <div id="rpanel-0" class="rpanel">
       <pre id="rtext-0" class="result-card"></pre>
       <button class="copy-result-btn" id="rcopy-0" onclick="copyResult(0)">📋 コピー</button>
@@ -284,7 +300,6 @@ body { background: var(--seeds-cream); font-family: -apple-system, BlinkMacSyste
       <button class="copy-result-btn" id="rcopy-2" onclick="copyResult(2)">📋 コピー</button>
       <a class="link-result-btn" href="https://line.worksmobile.com/default" target="_blank" rel="noopener">💬 LINE WORKSへ共有</a>
     </div>
-
     <button class="back-btn" onclick="backToForm()">🏠 新しい記録を入力する</button>
     <div class="footer">
       みやのだいSEEDS 記録作成アシスタント<br>
@@ -308,7 +323,7 @@ body { background: var(--seeds-cream); font-family: -apple-system, BlinkMacSyste
 </div>
 
 <script>
-// ── 定数 ────────────────────────────────────────────
+// ── システムプロンプト ──────────────────────────────
 const SYSTEM_PROMPT = `あなたは児童発達支援事業所の支援記録作成者です。入力されたエピソードをもとに3種類の記録を作成してください。
 
 【共通ルール】
@@ -383,13 +398,32 @@ const RESPONSE_SCHEMA = {
   }
 };
 
-const GOAL_SEC = 300;
-const LS_KEY = 'mseeds_draft';
+const GOAL_SEC  = 300;
+const LS_KEY    = 'mseeds_draft';
+const LS_APIKEY = 'mseeds_apikey';
 
 // ── 状態 ────────────────────────────────────────────
 let goals = [], outputs = ['', '', ''];
 let timerStart = Date.now(), timerInterval = null, finalSeconds = 0;
 let rawTestResponse = '';
+
+// ── APIキー ─────────────────────────────────────────
+function getApiKey() {
+  return document.getElementById('api-key').value.trim();
+}
+function onApiKeyInput() {
+  const key = getApiKey();
+  document.getElementById('apikey-status').textContent = key ? '✅' : '';
+  if (key) { try { localStorage.setItem(LS_APIKEY, key); } catch(e) {} }
+}
+function restoreApiKey() {
+  let key = '';
+  try { key = localStorage.getItem(LS_APIKEY) || ''; } catch(e) {}
+  if (key) {
+    document.getElementById('api-key').value = key;
+    document.getElementById('apikey-status').textContent = '✅';
+  }
+}
 
 // ── タイマー ────────────────────────────────────────
 function startTimer() {
@@ -465,7 +499,6 @@ function saveDraft() {
   };
   try { localStorage.setItem(LS_KEY, JSON.stringify(draft)); } catch(e) {}
 }
-
 function restoreDraft() {
   let raw;
   try { raw = localStorage.getItem(LS_KEY); } catch(e) { return; }
@@ -483,9 +516,7 @@ function restoreDraft() {
     ['q2','q3','q4','q5'].forEach(id => { if (d[id]) document.getElementById(id).value = d[id]; });
   } catch(e) {}
 }
-
 function clearDraft() { try { localStorage.removeItem(LS_KEY); } catch(e) {} }
-
 function initAutoSave() {
   ['child-name','q2','q3','q4','q5'].forEach(id => {
     document.getElementById(id).addEventListener('input', saveDraft);
@@ -493,60 +524,50 @@ function initAutoSave() {
   document.querySelectorAll('.staff-chip input').forEach(el => el.addEventListener('change', saveDraft));
 }
 
-// ── 結果タブ切替 ───────────────────────────────────
+// ── 結果タブ・コピー ───────────────────────────────
 function sw(i) {
-  [0, 1, 2].forEach(j => {
-    document.getElementById('rtab-' + j).classList.toggle('active', j === i);
-    document.getElementById('rpanel-' + j).style.display = j === i ? 'block' : 'none';
+  [0,1,2].forEach(j => {
+    document.getElementById('rtab-'+j).classList.toggle('active', j===i);
+    document.getElementById('rpanel-'+j).style.display = j===i ? 'block' : 'none';
   });
 }
-
-// ── 結果コピー ─────────────────────────────────────
 function copyResult(i) {
   navigator.clipboard.writeText(outputs[i]).then(() => {
-    const btn = document.getElementById('rcopy-' + i);
+    const btn = document.getElementById('rcopy-'+i);
     btn.textContent = '✅ コピーしました';
     btn.classList.add('copied');
     setTimeout(() => { btn.textContent = '📋 コピー'; btn.classList.remove('copied'); }, 2000);
   });
 }
 
-// ── 結果インライン表示 ─────────────────────────────
-function showResult(outs, sec, staff) {
+// ── 結果表示・フォームリセット ─────────────────────
+function showResult(outs, sec) {
   const ok = sec <= GOAL_SEC;
   document.getElementById('time-banner').textContent =
     (ok ? '✅ ' : '⏱ ') + '記録完了！所要時間 ' + formatTime(sec) + (ok ? '（目標達成🌱）' : '（あともう少し！）');
-
   outputs = outs;
   document.getElementById('rtext-0').textContent = outs[0];
   document.getElementById('rtext-1').textContent = outs[1];
   document.getElementById('rtext-2').textContent = outs[2];
   document.getElementById('char-hint-2').textContent = outs[2].length + '文字';
-
-  [0, 1, 2].forEach(i => {
-    const btn = document.getElementById('rcopy-' + i);
-    btn.textContent = '📋 コピー';
-    btn.classList.remove('copied');
+  [0,1,2].forEach(i => {
+    document.getElementById('rcopy-'+i).textContent = '📋 コピー';
+    document.getElementById('rcopy-'+i).classList.remove('copied');
   });
   sw(0);
-
   document.getElementById('loading').classList.remove('show');
   document.getElementById('result-area').style.display = '';
   window.scrollTo(0, 0);
 }
-
-// ── フォームに戻る ─────────────────────────────────
 function backToForm() {
   document.getElementById('result-area').style.display = 'none';
   resetForm();
 }
-
 function getSelectedStaff() {
   return [...document.querySelectorAll('.staff-chip input:checked')].map(el => el.value).join('・');
 }
-
 function resetForm() {
-  goals = []; outputs = ['', '', ''];
+  goals = []; outputs = ['','',''];
   document.getElementById('goals-tags').innerHTML = '';
   ['child-name','goal-input','q2','q3','q4','q5'].forEach(id => document.getElementById(id).value = '');
   document.querySelectorAll('.staff-chip input').forEach(el => el.checked = false);
@@ -560,29 +581,8 @@ function resetForm() {
   window.scrollTo(0, 0);
 }
 
-// ── ログ送信 ───────────────────────────────────────
-function sendLog(staff, childName, inputs, outs, seconds) {
-  const SCRIPT_URL = window.__LOG_URL__ || '';
-  if (!SCRIPT_URL) return;
-  try {
-    fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        token: window.__LOG_TOKEN__ || 'SEEDS_SECRET_2024',
-        datetime: new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
-        staff, childName,
-        goals: inputs.goals, q2: inputs.q2, q3: inputs.q3, q4: inputs.q4, q5: inputs.q5,
-        out0: outs[0], out1: outs[1], out2: outs[2],
-        elapsed: formatTime(seconds)
-      })
-    });
-  } catch(e) {}
-}
-
-// ── API リクエスト共通ビルダー ─────────────────────
-function buildRequest(systemContent, userContent) {
+// ── OpenAI API 直接呼び出し ────────────────────────
+function buildRequestBody(systemContent, userContent) {
   return {
     model: 'gpt-5',
     input: [
@@ -594,7 +594,20 @@ function buildRequest(systemContent, userContent) {
   };
 }
 
-function parseResponse(data) {
+async function callOpenAI(apiKey, body) {
+  const res = await fetch('https://api.openai.com/v1/responses', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify(body)
+  });
+  let data;
+  try { data = await res.json(); } catch(e) {
+    throw new Error('サーバーエラー (' + res.status + ')。時間をおいて再度お試しください。');
+  }
+  if (!res.ok || data.error) throw new Error(data.error?.message || 'APIエラー: ' + res.status);
   const text = data.output?.[0]?.content?.[0]?.text;
   if (!text) throw new Error('APIからのレスポンスが空でした。');
   const parsed = JSON.parse(text);
@@ -607,6 +620,7 @@ function parseResponse(data) {
 // ── 生成 ───────────────────────────────────────────
 async function generate() {
   hideErr();
+  const apiKey    = getApiKey();
   const childName = document.getElementById('child-name').value.trim();
   const q2 = document.getElementById('q2').value.trim();
   const q3 = document.getElementById('q3').value.trim();
@@ -614,10 +628,11 @@ async function generate() {
   const q5 = document.getElementById('q5').value.trim();
   const staff = getSelectedStaff();
 
-  if (!staff)     { showErr('記入者を選択してください。'); return; }
-  if (!childName) { showErr('児童名を入力してください。'); return; }
+  if (!apiKey)       { showErr('OpenAI APIキー（sk-...）を入力してください。'); return; }
+  if (!staff)        { showErr('記入者を選択してください。'); return; }
+  if (!childName)    { showErr('児童名を入力してください。'); return; }
   if (!goals.length) { showErr('ねらいを1つ以上追加してください。'); return; }
-  if (!q2)        { showErr('質問②（見られた姿）を入力してください。'); return; }
+  if (!q2)           { showErr('質問②（見られた姿）を入力してください。'); return; }
 
   document.getElementById('gen-btn').disabled = true;
   document.getElementById('form-area').style.display = 'none';
@@ -637,28 +652,11 @@ ${q4 || '（未入力）'}
 ${q5 || '（未入力）'}`;
 
   try {
-    const res = await fetch('/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildRequest(SYSTEM_PROMPT, userMsg))
-    });
-
-    let data;
-    try { data = await res.json(); } catch(e) {
-      throw new Error('サーバーエラー (' + res.status + ')。時間をおいて再度お試しください。');
-    }
-    if (!res.ok || data.error) {
-      throw new Error(data.error?.message || 'APIエラー: ' + res.status);
-    }
-
-    const parsed = parseResponse(data);
-    const outs = [parsed.guardian, parsed.internal, parsed.teacher];
-
+    const parsed = await callOpenAI(apiKey, buildRequestBody(SYSTEM_PROMPT, userMsg));
+    const outs   = [parsed.guardian, parsed.internal, parsed.teacher];
     stopTimer();
-    sendLog(staff, childName, { goals: goals.join('、'), q2, q3, q4, q5 }, outs, finalSeconds);
     clearDraft();
-    showResult(outs, finalSeconds, staff);
-
+    showResult(outs, finalSeconds);
   } catch(e) {
     stopTimer();
     document.getElementById('loading').classList.remove('show');
@@ -666,17 +664,6 @@ ${q5 || '（未入力）'}`;
     document.getElementById('gen-btn').disabled = false;
     showErr('エラーが発生しました：' + e.message);
     startTimer();
-  }
-}
-
-// ── ポップアップ許可確認 ───────────────────────────
-function checkPopup() {
-  const w = window.open('about:blank', '_blank', 'width=10,height=10,left=-100,top=-100');
-  if (!w || w.closed || typeof w.closed === 'undefined') {
-    showErr('⚠️ ポップアップがブロックされています。\n\nブラウザのアドレスバー右端にあるブロックアイコンをタップして「許可」に変更してください。許可後にページを再読み込みしてからご使用ください。');
-  } else {
-    w.close();
-    showSuccess('✅ ポップアップは許可されています。正常に使用できます。');
   }
 }
 
@@ -691,7 +678,6 @@ function openTestModal() {
 }
 function closeTestModal() { document.getElementById('test-modal').classList.remove('show'); }
 function closeTestModalOutside(e) { if (e.target === document.getElementById('test-modal')) closeTestModal(); }
-
 function copyRawResponse() {
   navigator.clipboard.writeText(rawTestResponse).then(() => {
     const btn = document.querySelector('.modal-copy-btn');
@@ -702,61 +688,31 @@ function copyRawResponse() {
 }
 
 async function runTest() {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    showTestResult(false, '❌ APIキーが未入力です。\n画面上部の🔑欄にAPIキーを入力してください。', '', null);
+    return;
+  }
+
   const testUser =
 `【入力情報】※入力内容はすべて漏れなく記録に反映してください
 児童名：テスト太郎くん
 ①今日のねらい：お友だちとの関わり
 ②見られた姿・発言・エピソード：
-積み木コーナーでAくんと一緒に塔を作ろうとする姿がみられた。積み木が崩れてしまった場面では「もう一回やろう」とAくんに声をかけ、二人で作り直す姿があった。「こうしたら？」と言葉で提案する場面もみられた。
+積み木コーナーでAくんと一緒に塔を作ろうとする姿がみられた。積み木が崩れてしまった場面では「もう一回やろう」とAくんに声をかけ、二人で作り直す姿があった。
 ③行った支援・関わり：
-そばで見守りながら、やり取りが続くよう「いいね、どうする？」と声かけを行った。崩れた際に二人が互いの気持ちを確認できるよう「Aくんはどう思う？」と橋渡しをした。
+そばで見守りながら「いいね、どうする？」と声かけを行った。
 ④保護者に伝えたいエピソード：
 （未入力）
 ⑤施設内記録（保護者向けには絶対含めない）：
 （未入力）`;
 
   try {
-    const res = await fetch('/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildRequest(SYSTEM_PROMPT, testUser))
-    });
-
-    let data;
-    try { data = await res.json(); } catch(e) {
-      showTestResult(false, '❌ サーバーエラー (' + res.status + ')\nNetlifyの処理時間制限（10秒）を超えた可能性があります。', '', null);
-      return;
-    }
-
-    if (!res.ok || data.error) {
-      const msg = data.error?.message || 'HTTPエラー ' + res.status;
-      showTestResult(false, '❌ API接続エラー: ' + msg, '', null);
-      return;
-    }
-
-    let rawText = '';
-    try { rawText = data.output?.[0]?.content?.[0]?.text || ''; } catch(e) {}
-    rawTestResponse = rawText;
-
-    if (!rawText) {
-      showTestResult(false, '❌ レスポンスが空です', JSON.stringify(data, null, 2), null);
-      return;
-    }
-
-    let parsed = null;
-    try {
-      parsed = JSON.parse(rawText);
-      if (!parsed.guardian || !parsed.internal || !parsed.teacher) parsed = null;
-    } catch(e) { parsed = null; }
-
-    if (parsed) {
-      showTestResult(true, '✅ 接続・解析ともに成功！本番でも動作するはずです。', rawText, parsed);
-    } else {
-      showTestResult(false, '⚠️ API接続は成功しましたが、出力の解析に失敗しました。\n下の「生のレスポンス」を管理者に共有してください。', rawText, null);
-    }
-
+    const parsed = await callOpenAI(apiKey, buildRequestBody(SYSTEM_PROMPT, testUser));
+    rawTestResponse = JSON.stringify(parsed, null, 2);
+    showTestResult(true, '✅ 接続・解析ともに成功！本番でも動作するはずです。', rawTestResponse, parsed);
   } catch(e) {
-    showTestResult(false, '❌ 通信エラー: ' + e.message, rawTestResponse, null);
+    showTestResult(false, '❌ ' + e.message, rawTestResponse, null);
   }
 }
 
@@ -764,43 +720,49 @@ function showTestResult(ok, statusMsg, rawText, parsed) {
   const statusEl = document.getElementById('test-status');
   statusEl.className = 'test-status ' + (ok ? 'ok' : 'ng');
   statusEl.textContent = statusMsg;
-
   let html = '';
   if (parsed) {
-    html += '<div class="test-section-label">① 保護者向け（解析結果）</div>';
+    html += '<div class="test-section-label">① 保護者向け</div>';
     html += `<div class="test-parsed-item">${escapeHtml(parsed.guardian)}</div>`;
-    html += '<div class="test-section-label">② 内部施設記録（解析結果）</div>';
+    html += '<div class="test-section-label">② 内部施設記録</div>';
     html += `<div class="test-parsed-item">${escapeHtml(parsed.internal)}</div>`;
-    html += '<div class="test-section-label">③ 担任共有用（解析結果）</div>';
+    html += '<div class="test-section-label">③ 担任共有用</div>';
     html += `<div class="test-parsed-item">${escapeHtml(parsed.teacher)}</div>`;
   }
   if (rawText) {
-    html += '<div class="test-section-label">生のレスポンス（AIが実際に返したJSON）</div>';
+    html += '<div class="test-section-label">生のレスポンス</div>';
     html += `<div class="test-raw">${escapeHtml(rawText)}</div>`;
     html += `<button class="modal-copy-btn" onclick="copyRawResponse()">📋 生のレスポンスをコピー</button>`;
   }
   document.getElementById('test-detail').innerHTML = html;
 }
 
+// ── ポップアップ確認 ───────────────────────────────
+function checkPopup() {
+  const w = window.open('about:blank', '_blank', 'width=10,height=10,left=-100,top=-100');
+  if (!w || w.closed || typeof w.closed === 'undefined') {
+    showErr('⚠️ ポップアップがブロックされています。\nブラウザのアドレスバー右端のブロックアイコンをタップして「許可」に変更してください。');
+  } else {
+    w.close();
+    showSuccess('✅ ポップアップは許可されています。正常に使用できます。');
+  }
+}
+
 // ── PWA インストール ────────────────────────────────
 let deferredInstallPrompt = null;
-
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   deferredInstallPrompt = e;
   const btn = document.getElementById('install-btn');
   if (btn) btn.style.display = 'flex';
-  // beforeinstallprompt が発火 = Android/PC なので iOS ヒントは不要
   const hint = document.getElementById('ios-hint');
   if (hint) hint.style.display = 'none';
 });
-
 window.addEventListener('appinstalled', () => {
   deferredInstallPrompt = null;
   const btn = document.getElementById('install-btn');
   if (btn) btn.style.display = 'none';
 });
-
 function installApp() {
   if (!deferredInstallPrompt) return;
   deferredInstallPrompt.prompt();
@@ -812,26 +774,18 @@ function installApp() {
 }
 
 // ── 初期化 ─────────────────────────────────────────
-fetch('/api/config')
-  .then(r => r.json())
-  .then(cfg => { window.__LOG_URL__ = cfg.logUrl || ''; window.__LOG_TOKEN__ = cfg.logToken || ''; })
-  .catch(() => {});
-
-// Service Worker 登録（PWA インストール要件）
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
-
-// iOS Safari 向けホーム画面追加ヒント（beforeinstallprompt は発火しない）
 (function() {
   const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.MSStream;
-  const isStandalone = window.navigator.standalone === true;
-  if (isIOS && !isStandalone) {
+  if (isIOS && !window.navigator.standalone) {
     const hint = document.getElementById('ios-hint');
     if (hint) hint.style.display = 'block';
   }
 })();
 
+restoreApiKey();
 restoreDraft();
 initAutoSave();
 startTimer();
