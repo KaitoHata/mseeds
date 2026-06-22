@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>みやのだいSEEDS 記録作成アシスタント</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4A2C0C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SEEDS記録">
+<link rel="apple-touch-icon" href="app.png">
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --seeds-brown: #4A2C0C;
+  --seeds-crimson: #B03060;
+  --seeds-gold: #C89B1A;
+  --seeds-cream: #FBF7F2;
+  --seeds-light-rose: #F5E8EE;
+}
+body { background: var(--seeds-cream); font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Meiryo', sans-serif; }
+.app { max-width: 480px; margin: 0 auto; padding: 0 0 3rem; min-height: 100vh; }
+
+/* Header */
+.app-header { background: var(--seeds-brown); padding: 0.875rem 1.25rem; position: sticky; top: 0; z-index: 10; }
+.header-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.header-logo-wrap { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.logo-img { height: 32px; width: auto; display: block; }
+.header-divider { width: 1px; height: 28px; background: rgba(255,255,255,0.25); flex-shrink: 0; }
+.header-sub { font-size: 10px; color: rgba(255,255,255,0.7); line-height: 1.4; }
+.timer-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex-shrink: 0; }
+.timer-display { font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums; color: #fff; line-height: 1; }
+.timer-display.warn { color: #F5C842; }
+.timer-display.over { color: #FF7B7B; }
+.timer-label { font-size: 9px; color: rgba(255,255,255,0.55); text-align: right; }
+.timer-bar-wrap { margin-top: 8px; height: 2px; background: rgba(255,255,255,0.15); border-radius: 99px; overflow: hidden; }
+.timer-bar { height: 100%; width: 0%; background: var(--seeds-gold); border-radius: 99px; transition: width 1s linear, background 0.3s; }
+
+/* Form */
+.section { padding: 1rem 1.25rem 0; }
+.section-label { font-size: 10px; font-weight: 600; color: var(--seeds-brown); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; opacity: 0.6; }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 12px; color: var(--seeds-brown); opacity: 0.7; margin-bottom: 4px; }
+.field input, .field textarea, .q-block textarea {
+  width: 100%; font-size: 16px; padding: 10px 12px;
+  border: 1px solid rgba(74,44,12,0.15); border-radius: 10px;
+  background: #fff; color: var(--seeds-brown);
+  font-family: inherit; transition: border-color 0.15s;
+}
+.field input:focus, .field textarea:focus, .q-block textarea:focus {
+  outline: none; border-color: var(--seeds-crimson);
+  box-shadow: 0 0 0 3px rgba(176,48,96,0.08);
+}
+.field textarea, .q-block textarea { resize: vertical; min-height: 88px; line-height: 1.6; }
+
+.q-block { background: #fff; border-radius: 12px; border: 1px solid rgba(74,44,12,0.1); padding: 1rem; margin-bottom: 10px; transition: opacity 0.3s; }
+.q-block.optional { border-left: 3px solid rgba(74,44,12,0.15); }
+.q-block.internal { border-left: 3px solid var(--seeds-gold); background: #FFFDF7; }
+.q-block.dimmed { opacity: 0.45; background: #F5F3F0; }
+.q-block.dimmed textarea { background: #EEECE9; color: rgba(74,44,12,0.4); }
+.q-num { font-size: 10px; font-weight: 600; color: var(--seeds-crimson); margin-bottom: 3px; letter-spacing: 0.04em; }
+.q-text { font-size: 13px; font-weight: 600; color: var(--seeds-brown); margin-bottom: 8px; line-height: 1.5; }
+.q-hint { font-size: 11px; color: rgba(74,44,12,0.5); margin-bottom: 8px; line-height: 1.6; }
+.q-badge { display: inline-block; font-size: 10px; padding: 2px 9px; border-radius: 99px; margin-bottom: 8px; background: #FFF5D6; color: #7A5800; border: 1px solid #E8C84A; }
+.q-badge-opt { display: inline-block; font-size: 10px; padding: 2px 9px; border-radius: 99px; margin-bottom: 8px; background: #F0EDE8; color: rgba(74,44,12,0.55); border: 1px solid rgba(74,44,12,0.15); }
+.q-badge-dimmed { display: none; font-size: 10px; padding: 2px 9px; border-radius: 99px; margin-bottom: 8px; background: #E8E4DE; color: rgba(74,44,12,0.45); border: 1px solid rgba(74,44,12,0.1); }
+.q-block.dimmed .q-badge-opt { display: none; }
+.q-block.dimmed .q-badge-dimmed { display: inline-block; }
+
+.tag-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.tag { display: inline-flex; align-items: center; gap: 4px; background: var(--seeds-light-rose); color: var(--seeds-crimson); font-size: 12px; padding: 4px 10px; border-radius: 99px; border: 1px solid rgba(176,48,96,0.25); }
+.tag button { background: none; border: none; cursor: pointer; color: var(--seeds-crimson); font-size: 15px; padding: 0; line-height: 1; }
+.tag-add-row { display: flex; gap: 6px; }
+.tag-add-row input { flex: 1; font-size: 16px; padding: 8px 10px; }
+.tag-add-btn { padding: 8px 14px; font-size: 13px; white-space: nowrap; cursor: pointer; border: 1px solid rgba(74,44,12,0.2); border-radius: 10px; background: var(--seeds-cream); color: var(--seeds-brown); font-family: inherit; }
+.tag-add-btn:active { background: var(--seeds-light-rose); }
+
+.gen-btn { width: calc(100% - 2.5rem); margin: 1.25rem 1.25rem 0; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 15px; font-size: 15px; font-weight: 600; cursor: pointer; border-radius: 12px; border: none; background: var(--seeds-crimson); color: #fff; font-family: inherit; letter-spacing: 0.02em; transition: opacity 0.15s, transform 0.1s; }
+.gen-btn:active { transform: scale(0.98); opacity: 0.9; }
+.gen-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Loading */
+.loading { display: none; text-align: center; padding: 4rem 1.25rem; }
+.loading.show { display: block; }
+.sprout { font-size: 40px; animation: grow 1.2s ease-in-out infinite alternate; display: block; margin-bottom: 16px; }
+@keyframes grow { from { transform: scale(0.85); } to { transform: scale(1.1); } }
+.loading-text { font-size: 14px; color: var(--seeds-brown); opacity: 0.7; }
+.loading-sub { font-size: 12px; color: rgba(74,44,12,0.45); margin-top: 6px; }
+
+/* Errors / success */
+.err { display: none; background: #FFF0F0; border: 1px solid #FFB3B3; border-radius: 10px; padding: 12px 14px; margin: 1rem 1.25rem 0; font-size: 13px; color: #A32D2D; line-height: 1.6; white-space: pre-wrap; }
+.err.show { display: block; }
+.success { display: none; background: #F0FFF4; border: 1px solid #9AE6B4; border-radius: 10px; padding: 12px 14px; margin: 1rem 1.25rem 0; font-size: 13px; color: #276749; line-height: 1.6; text-align: center; font-weight: 600; }
+.success.show { display: block; }
+
+/* Staff chips */
+.staff-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.staff-chip { display: inline-flex; }
+.staff-chip input[type="checkbox"] { display: none; }
+.staff-chip label { display: inline-block; padding: 8px 16px; border-radius: 99px; border: 1.5px solid rgba(74,44,12,0.2); font-size: 14px; font-weight: 700; color: var(--seeds-brown); cursor: pointer; background: #fff; transition: all 0.15s; letter-spacing: 0.04em; }
+.staff-chip input:checked + label { background: var(--seeds-crimson); color: #fff; border-color: var(--seeds-crimson); }
+
+/* Test button */
+.test-btn { width: calc(100% - 2.5rem); margin: 0.6rem 1.25rem 0; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 11px; font-size: 13px; cursor: pointer; border-radius: 10px; border: 1px dashed rgba(74,44,12,0.3); background: transparent; color: rgba(74,44,12,0.55); font-family: inherit; }
+.test-btn:active { background: var(--seeds-light-rose); }
+
+/* Test Modal */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; overflow-y: auto; padding: 1rem; }
+.modal-overlay.show { display: flex; align-items: flex-start; justify-content: center; }
+.modal { background: #fff; border-radius: 14px; width: 100%; max-width: 480px; margin: auto; overflow: hidden; }
+.modal-header { background: var(--seeds-brown); color: #fff; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
+.modal-title { font-size: 14px; font-weight: 600; }
+.modal-close { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; line-height: 1; padding: 0; }
+.modal-body { padding: 1rem; }
+.test-status { font-size: 15px; font-weight: 700; text-align: center; padding: 12px; border-radius: 10px; margin-bottom: 12px; white-space: pre-wrap; }
+.test-status.ok { background: #F0FFF4; color: #276749; border: 1px solid #9AE6B4; }
+.test-status.ng { background: #FFF0F0; color: #A32D2D; border: 1px solid #FFB3B3; }
+.test-status.running { background: #FFF8E1; color: #7A5800; border: 1px solid #E8C84A; }
+.test-section-label { font-size: 11px; font-weight: 600; color: var(--seeds-brown); opacity: 0.6; margin: 10px 0 4px; }
+.test-raw { background: #F5F3F0; border-radius: 8px; padding: 10px; font-size: 12px; line-height: 1.6; color: #333; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+.test-parsed-item { background: #F9F6F2; border-left: 3px solid var(--seeds-crimson); border-radius: 6px; padding: 8px 10px; font-size: 12px; line-height: 1.6; color: var(--seeds-brown); margin-bottom: 8px; max-height: 120px; overflow-y: auto; white-space: pre-wrap; }
+.modal-copy-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 10px; padding: 10px; font-size: 13px; cursor: pointer; border-radius: 8px; border: 1px solid rgba(74,44,12,0.15); background: var(--seeds-cream); color: var(--seeds-brown); font-family: inherit; }
+
+/* Result area (inline) */
+.result-area { padding-bottom: 3rem; }
+.time-banner { font-size: 15px; font-weight: 700; color: var(--seeds-crimson); text-align: center; margin: 14px 1.25rem 0; padding: 12px 16px; background: var(--seeds-light-rose); border-radius: 12px; border: 2px solid rgba(176,48,96,0.2); line-height: 1.6; }
+.result-tabs { display: flex; gap: 6px; margin: 14px 1.25rem 0; }
+.rtab { flex: 1; padding: 10px 4px; font-size: 12px; text-align: center; cursor: pointer; color: rgba(74,44,12,0.5); border-radius: 10px; border: 1px solid rgba(74,44,12,0.12); background: #fff; white-space: nowrap; font-family: inherit; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.rtab.active { background: var(--seeds-crimson); color: #fff; border-color: var(--seeds-crimson); font-weight: 600; }
+.rpanel { padding: 0 1.25rem; }
+.result-card { background: #fff; border: 1px solid rgba(74,44,12,0.1); border-radius: 12px; padding: 16px; margin-top: 14px; white-space: pre-wrap; font-size: 15px; line-height: 1.9; color: var(--seeds-brown); overflow-wrap: break-word; word-break: break-word; font-family: inherit; }
+.char-hint { font-size: 12px; color: rgba(74,44,12,0.4); margin-top: 6px; text-align: right; }
+.copy-result-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 10px; padding: 13px; font-size: 14px; cursor: pointer; border-radius: 10px; border: 1px solid rgba(74,44,12,0.15); background: #fff; color: var(--seeds-brown); font-family: inherit; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: all 0.15s; }
+.copy-result-btn.copied { color: var(--seeds-crimson); border-color: var(--seeds-crimson); background: var(--seeds-light-rose); }
+.link-result-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 8px; padding: 13px; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 10px; border: 1px solid rgba(74,44,12,0.2); background: var(--seeds-cream); color: var(--seeds-brown); text-decoration: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.back-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: calc(100% - 2.5rem); margin: 16px 1.25rem 0; padding: 13px; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 10px; border: 2px solid rgba(74,44,12,0.25); background: var(--seeds-cream); color: var(--seeds-brown); font-family: inherit; touch-action: manipulation; }
+
+.footer { text-align: center; padding: 2rem 1.25rem 1rem; font-size: 10px; color: rgba(74,44,12,0.35); line-height: 1.8; }
+.ios-hint { margin: 0.4rem 1.25rem 0; background: #FFF8E1; border: 1px solid #E8C84A; border-radius: 10px; padding: 10px 14px; font-size: 12px; color: #7A5800; line-height: 1.8; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="app-header">
+    <div class="header-top">
+      <div class="header-logo-wrap">
+        <img class="logo-img" src="logo.png" alt="みやのだいSEEDS"
+          onerror="this.style.display='none';document.getElementById('logo-text').style.display='block'">
+        <span id="logo-text" style="display:none;color:#fff;font-size:14px;font-weight:600;">みやのだいSEEDS</span>
+        <div class="header-divider"></div>
+        <div class="header-sub">記録作成<br>アシスタント</div>
+      </div>
+      <div class="timer-wrap">
+        <div class="timer-display" id="timer-display">0:00</div>
+        <div class="timer-label">目標 5:00</div>
+      </div>
+    </div>
+    <div class="timer-bar-wrap">
+      <div class="timer-bar" id="timer-bar"></div>
+    </div>
+  </div>
+
+  <!-- フォームエリア -->
+  <div id="form-area">
+    <div class="section">
+      <div class="section-label">基本情報</div>
+      <div class="field">
+        <label>記入者</label>
+        <div class="staff-chips">
+          <span class="staff-chip"><input type="checkbox" id="s-MS" value="MS"><label for="s-MS">MS</label></span>
+          <span class="staff-chip"><input type="checkbox" id="s-SU" value="SU"><label for="s-SU">SU</label></span>
+          <span class="staff-chip"><input type="checkbox" id="s-HO" value="HO"><label for="s-HO">HO</label></span>
+          <span class="staff-chip"><input type="checkbox" id="s-AM" value="AM"><label for="s-AM">AM</label></span>
+          <span class="staff-chip"><input type="checkbox" id="s-AS" value="AS"><label for="s-AS">AS</label></span>
+          <span class="staff-chip"><input type="checkbox" id="s-TS" value="TS"><label for="s-TS">TS</label></span>
+          <span class="staff-chip"><input type="checkbox" id="s-HH" value="HH"><label for="s-HH">HH</label></span>
+          <span class="staff-chip"><input type="checkbox" id="s-KH" value="KH"><label for="s-KH">KH</label></span>
+          <span class="staff-chip"><input type="checkbox" id="s-OTHER" value="OTHER"><label for="s-OTHER">OTHER</label></span>
+        </div>
+      </div>
+      <div class="field">
+        <label>児童名 <span style="font-size:11px;opacity:0.6;">（名前のみ・ひらがな）</span></label>
+        <input type="text" id="child-name" placeholder="例）たろう　※名前のみひらがなで記入">
+      </div>
+    </div>
+
+    <div class="section" style="margin-top:0.25rem;">
+      <div class="section-label">質問</div>
+
+      <div class="q-block">
+        <div class="q-num">質問①</div>
+        <div class="q-text">今日のねらいは何でしたか？</div>
+        <div class="q-hint">例：お友だちとの関わり／言葉で気持ちを伝える／活動への参加<br>入力してEnterまたは「追加」ボタンで複数登録できます</div>
+        <div class="tag-wrap" id="goals-tags"></div>
+        <div class="tag-add-row">
+          <input type="text" id="goal-input" placeholder="ねらいを入力…">
+          <button class="tag-add-btn" onclick="addGoal()">追加</button>
+        </div>
+      </div>
+
+      <div class="q-block">
+        <div class="q-num">質問②</div>
+        <div class="q-text">そのねらいに対して見られた姿を教えてください。</div>
+        <textarea id="q2" placeholder="子どもの様子や行動を具体的に教えてください"></textarea>
+      </div>
+
+      <div class="q-block">
+        <div class="q-num">質問③</div>
+        <div class="q-text">どのような支援や関わりを行いましたか？</div>
+        <textarea id="q3" placeholder="行った支援・声かけ・環境調整などを教えてください"></textarea>
+      </div>
+
+      <div class="q-block optional" id="q4-block">
+        <div class="q-badge-opt">⏱ 時間があるときだけ記入</div>
+        <div class="q-badge-dimmed">⏰ 5分超過 — スキップ推奨（記入は可能です）</div>
+        <div class="q-num">質問④</div>
+        <div class="q-text">保護者に伝えたいエピソードや様子を教えてください。</div>
+        <textarea id="q4" placeholder="保護者が喜ぶ具体的な場面やエピソードを教えてください"></textarea>
+      </div>
+
+      <div class="q-block internal">
+        <div class="q-badge">🔒 施設内記録のみ・保護者文書には含まれません</div>
+        <div class="q-num">質問⑤</div>
+        <div class="q-text">施設内記録として残しておきたいことを教えてください。</div>
+        <textarea id="q5" placeholder="気になった点、職員間で引き継ぎたいこと、今後の支援に活かしたいことなど"></textarea>
+      </div>
+    </div>
+
+    <div class="err" id="err-msg"></div>
+    <div class="success" id="success-msg"></div>
+
+    <button class="gen-btn" id="gen-btn" onclick="generate()">
+      🌱 3種類の記録を生成する
+    </button>
+    <button class="test-btn" onclick="openTestModal()">🧪 API接続テスト</button>
+    <button class="test-btn" onclick="checkPopup()" style="margin-top:0.4rem;">🪟 ポップアップ許可確認（記入前に確認）</button>
+    <button class="test-btn" id="install-btn" onclick="installApp()" style="display:none;margin-top:0.4rem;">📲 ホーム画面に追加する</button>
+    <div class="ios-hint" id="ios-hint" style="display:none;">
+      📲 ホーム画面に追加するには：<br>
+      Safariの画面下の <strong>共有ボタン（□↑）</strong> をタップ<br>
+      →「<strong>ホーム画面に追加</strong>」を選択してください
+    </div>
+
+    <div class="footer">
+      みやのだいSEEDS 記録作成アシスタント<br>
+      © KaitoHata　All rights reserved.
+    </div>
+  </div>
+
+  <!-- ローディング -->
+  <div class="loading" id="loading">
+    <span class="sprout">🌱</span>
+    <div class="loading-text">記録を生成中です…</div>
+    <div class="loading-sub">少々お待ちください</div>
+  </div>
+
+  <!-- 結果エリア（インライン表示・ポップアップ不要） -->
+  <div id="result-area" style="display:none;" class="result-area">
+    <div class="time-banner" id="time-banner"></div>
+    <div class="result-tabs">
+      <button class="rtab active" id="rtab-0" onclick="sw(0)">保護者向け</button>
+      <button class="rtab" id="rtab-1" onclick="sw(1)">内部施設記録</button>
+      <button class="rtab" id="rtab-2" onclick="sw(2)">担任共有用</button>
+    </div>
+
+    <div id="rpanel-0" class="rpanel">
+      <pre id="rtext-0" class="result-card"></pre>
+      <button class="copy-result-btn" id="rcopy-0" onclick="copyResult(0)">📋 コピー</button>
+      <a class="link-result-btn" href="https://www.hug-m-seeds.link/hug/wm/" target="_blank" rel="noopener">🔗 HUGで記録する</a>
+    </div>
+    <div id="rpanel-1" class="rpanel" style="display:none;">
+      <pre id="rtext-1" class="result-card"></pre>
+      <button class="copy-result-btn" id="rcopy-1" onclick="copyResult(1)">📋 コピー</button>
+      <a class="link-result-btn" href="https://www.hug-m-seeds.link/hug/wm/" target="_blank" rel="noopener">🔗 HUGで記録する</a>
+    </div>
+    <div id="rpanel-2" class="rpanel" style="display:none;">
+      <pre id="rtext-2" class="result-card"></pre>
+      <div id="char-hint-2" class="char-hint"></div>
+      <button class="copy-result-btn" id="rcopy-2" onclick="copyResult(2)">📋 コピー</button>
+      <a class="link-result-btn" href="https://line.worksmobile.com/default" target="_blank" rel="noopener">💬 LINE WORKSへ共有</a>
+    </div>
+
+    <button class="back-btn" onclick="backToForm()">🏠 新しい記録を入力する</button>
+    <div class="footer">
+      みやのだいSEEDS 記録作成アシスタント<br>
+      © KaitoHata　All rights reserved.
+    </div>
+  </div>
+</div>
+
+<!-- テストモーダル -->
+<div class="modal-overlay" id="test-modal" onclick="closeTestModalOutside(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🧪 API接続テスト</span>
+      <button class="modal-close" onclick="closeTestModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="test-status running" id="test-status">⏳ テスト中…</div>
+      <div id="test-detail"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 定数 ────────────────────────────────────────────
+const SYSTEM_PROMPT = `あなたは児童発達支援事業所の支援記録作成者です。入力されたエピソードをもとに3種類の記録を作成してください。
+
+【共通ルール】
+・入力されたエピソード・発言・行動はすべて漏れなく反映する。端折らない。
+・文章の整理・言葉遣いの修正は行うが、内容を省略しない。
+・記録にない内容を創作しない。事実と考察を区別する。
+・使用禁止表現：「できた」「できていない」「成功した」「失敗した」「頑張った」
+・推奨表現：「〜する姿がみられた」「〜と伝えてくれた」「〜を楽しむ様子があった」「〜を選んでいた」「〜に取り組んでいた」
+
+【guardian フィールド：保護者向けメッセージ】
+・肯定的で温かい文章にする。
+・冒頭に「【今日のねらい】」としてねらいを箇条書きで記載する。
+・支援者の関わりを記載する。
+・エピソードや発言はできる限りそのまま残す。評価ではなく見られた姿を伝える。
+・「支援していきます」禁止→「関わっていきます」を使用する。
+・⑤の内容は絶対に含めない。
+・④が未入力の場合は②の中から保護者が最も喜ぶ具体的な場面を1つ抽出してエピソードとして記載する。
+
+【internal フィールド：内部施設記録】
+必ず以下の形式で出力する：
+
+【専門的支援実施記録】
+・実施時間：支援時間
+・場所：午前＝連携園／午後＝拠点プレイルーム１
+・実施者：小寺
+・記録：
+
+■本日の目標
+（ねらいを記載）
+
+■活動内容
+（活動の流れを記載）
+
+■支援内容
+（職員の支援・関わりを記載）
+
+■児童の様子
+（子どもの発言・行動・様子を事実ベースで記載。良い面も困り感も省略しない）
+
+■評価・考察
+（事実をもとにした考察を記載。解釈より事実を優先）
+
+ルール：
+・事実を中心に記載する。良い面も困り感も省略しない。
+・5W1H（いつ・どこで・誰と・何を・なぜ・どのように）が分かるように記載する。
+・子どもの発言や職員の対応を可能な限り残す。
+・解釈より事実を優先する。
+・⑤施設内記録も含めて記載する。
+
+【teacher フィールド：担任共有用】
+・250文字以内厳守。
+・評価・指導的表現は使用しない。
+・どこで・誰と・何をしていたかが伝わる内容にする。
+・印象的な発言ややり取りを記載する。
+・支援者が意識した関わりを簡潔に記載する。
+・情景が浮かぶ文章にする。絵文字使用可。
+・⑤含めてよい。`;
+
+const RESPONSE_SCHEMA = {
+  type: 'json_schema',
+  name: 'record_output',
+  strict: true,
+  schema: {
+    type: 'object',
+    properties: {
+      guardian: { type: 'string' },
+      internal:  { type: 'string' },
+      teacher:   { type: 'string' }
+    },
+    required: ['guardian', 'internal', 'teacher'],
+    additionalProperties: false
+  }
+};
+
+const GOAL_SEC = 300;
+const LS_KEY = 'mseeds_draft';
+
+// ── 状態 ────────────────────────────────────────────
+let goals = [], outputs = ['', '', ''];
+let timerStart = Date.now(), timerInterval = null, finalSeconds = 0;
+let rawTestResponse = '';
+
+// ── タイマー ────────────────────────────────────────
+function startTimer() {
+  timerStart = Date.now();
+  timerInterval = setInterval(updateTimer, 1000);
+  updateTimer();
+}
+function updateTimer() {
+  const elapsed = Math.floor((Date.now() - timerStart) / 1000);
+  const m = Math.floor(elapsed / 60), s = elapsed % 60;
+  const disp = document.getElementById('timer-display');
+  const bar  = document.getElementById('timer-bar');
+  const q4   = document.getElementById('q4-block');
+  disp.textContent = m + ':' + String(s).padStart(2, '0');
+  bar.style.width = Math.min((elapsed / GOAL_SEC) * 100, 100) + '%';
+  disp.className = 'timer-display';
+  if (elapsed >= GOAL_SEC) {
+    disp.classList.add('over');
+    bar.style.background = '#FF7B7B';
+    q4.classList.add('dimmed');
+  } else if (elapsed >= GOAL_SEC * 0.8) {
+    disp.classList.add('warn');
+    bar.style.background = '#F5C842';
+  } else {
+    q4.classList.remove('dimmed');
+  }
+  finalSeconds = elapsed;
+}
+function stopTimer() { if (timerInterval) { clearInterval(timerInterval); timerInterval = null; } }
+function formatTime(sec) { return Math.floor(sec / 60) + '分' + String(sec % 60).padStart(2, '0') + '秒'; }
+
+// ── ユーティリティ ──────────────────────────────────
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function showErr(msg) { const e = document.getElementById('err-msg'); e.textContent = msg; e.classList.add('show'); }
+function hideErr() { document.getElementById('err-msg').classList.remove('show'); }
+function showSuccess(msg) {
+  const s = document.getElementById('success-msg');
+  s.textContent = msg; s.classList.add('show');
+  setTimeout(() => s.classList.remove('show'), 6000);
+}
+
+// ── ねらいタグ ─────────────────────────────────────
+document.getElementById('goal-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addGoal(); }
+});
+function addGoal() {
+  const v = document.getElementById('goal-input').value.trim();
+  if (!v) return;
+  goals.push(v);
+  document.getElementById('goal-input').value = '';
+  renderGoals();
+  saveDraft();
+}
+function removeGoal(i) { goals.splice(i, 1); renderGoals(); saveDraft(); }
+function renderGoals() {
+  document.getElementById('goals-tags').innerHTML = goals.map((g, i) =>
+    `<span class="tag">${escapeHtml(g)}<button onclick="removeGoal(${i})" aria-label="削除">×</button></span>`
+  ).join('');
+}
+
+// ── localStorage 自動保存・復元 ────────────────────
+function saveDraft() {
+  const draft = {
+    staff:     [...document.querySelectorAll('.staff-chip input:checked')].map(el => el.value),
+    childName: document.getElementById('child-name').value,
+    goals,
+    q2: document.getElementById('q2').value,
+    q3: document.getElementById('q3').value,
+    q4: document.getElementById('q4').value,
+    q5: document.getElementById('q5').value
+  };
+  try { localStorage.setItem(LS_KEY, JSON.stringify(draft)); } catch(e) {}
+}
+
+function restoreDraft() {
+  let raw;
+  try { raw = localStorage.getItem(LS_KEY); } catch(e) { return; }
+  if (!raw) return;
+  try {
+    const d = JSON.parse(raw);
+    if (d.staff && d.staff.length) {
+      d.staff.forEach(v => {
+        const el = document.querySelector(`.staff-chip input[value="${CSS.escape(v)}"]`);
+        if (el) el.checked = true;
+      });
+    }
+    if (d.childName) document.getElementById('child-name').value = d.childName;
+    if (d.goals && d.goals.length) { goals = d.goals; renderGoals(); }
+    ['q2','q3','q4','q5'].forEach(id => { if (d[id]) document.getElementById(id).value = d[id]; });
+  } catch(e) {}
+}
+
+function clearDraft() { try { localStorage.removeItem(LS_KEY); } catch(e) {} }
+
+function initAutoSave() {
+  ['child-name','q2','q3','q4','q5'].forEach(id => {
+    document.getElementById(id).addEventListener('input', saveDraft);
+  });
+  document.querySelectorAll('.staff-chip input').forEach(el => el.addEventListener('change', saveDraft));
+}
+
+// ── 結果タブ切替 ───────────────────────────────────
+function sw(i) {
+  [0, 1, 2].forEach(j => {
+    document.getElementById('rtab-' + j).classList.toggle('active', j === i);
+    document.getElementById('rpanel-' + j).style.display = j === i ? 'block' : 'none';
+  });
+}
+
+// ── 結果コピー ─────────────────────────────────────
+function copyResult(i) {
+  navigator.clipboard.writeText(outputs[i]).then(() => {
+    const btn = document.getElementById('rcopy-' + i);
+    btn.textContent = '✅ コピーしました';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 コピー'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ── 結果インライン表示 ─────────────────────────────
+function showResult(outs, sec, staff) {
+  const ok = sec <= GOAL_SEC;
+  document.getElementById('time-banner').textContent =
+    (ok ? '✅ ' : '⏱ ') + '記録完了！所要時間 ' + formatTime(sec) + (ok ? '（目標達成🌱）' : '（あともう少し！）');
+
+  outputs = outs;
+  document.getElementById('rtext-0').textContent = outs[0];
+  document.getElementById('rtext-1').textContent = outs[1];
+  document.getElementById('rtext-2').textContent = outs[2];
+  document.getElementById('char-hint-2').textContent = outs[2].length + '文字';
+
+  [0, 1, 2].forEach(i => {
+    const btn = document.getElementById('rcopy-' + i);
+    btn.textContent = '📋 コピー';
+    btn.classList.remove('copied');
+  });
+  sw(0);
+
+  document.getElementById('loading').classList.remove('show');
+  document.getElementById('result-area').style.display = '';
+  window.scrollTo(0, 0);
+}
+
+// ── フォームに戻る ─────────────────────────────────
+function backToForm() {
+  document.getElementById('result-area').style.display = 'none';
+  resetForm();
+}
+
+function getSelectedStaff() {
+  return [...document.querySelectorAll('.staff-chip input:checked')].map(el => el.value).join('・');
+}
+
+function resetForm() {
+  goals = []; outputs = ['', '', ''];
+  document.getElementById('goals-tags').innerHTML = '';
+  ['child-name','goal-input','q2','q3','q4','q5'].forEach(id => document.getElementById(id).value = '');
+  document.querySelectorAll('.staff-chip input').forEach(el => el.checked = false);
+  document.getElementById('form-area').style.display = '';
+  document.getElementById('gen-btn').disabled = false;
+  document.getElementById('timer-display').className = 'timer-display';
+  document.getElementById('timer-bar').style.cssText = 'width:0%;background:var(--seeds-gold)';
+  document.getElementById('q4-block').classList.remove('dimmed');
+  hideErr();
+  startTimer();
+  window.scrollTo(0, 0);
+}
+
+// ── ログ送信 ───────────────────────────────────────
+function sendLog(staff, childName, inputs, outs, seconds) {
+  const SCRIPT_URL = window.__LOG_URL__ || '';
+  if (!SCRIPT_URL) return;
+  try {
+    fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        token: window.__LOG_TOKEN__ || 'SEEDS_SECRET_2024',
+        datetime: new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
+        staff, childName,
+        goals: inputs.goals, q2: inputs.q2, q3: inputs.q3, q4: inputs.q4, q5: inputs.q5,
+        out0: outs[0], out1: outs[1], out2: outs[2],
+        elapsed: formatTime(seconds)
+      })
+    });
+  } catch(e) {}
+}
+
+// ── API リクエスト共通ビルダー ─────────────────────
+function buildRequest(systemContent, userContent) {
+  return {
+    model: 'gpt-5',
+    input: [
+      { role: 'system', content: systemContent },
+      { role: 'user',   content: userContent }
+    ],
+    max_output_tokens: 2000,
+    text: { format: RESPONSE_SCHEMA }
+  };
+}
+
+function parseResponse(data) {
+  const text = data.output?.[0]?.content?.[0]?.text;
+  if (!text) throw new Error('APIからのレスポンスが空でした。');
+  const parsed = JSON.parse(text);
+  if (!parsed.guardian || !parsed.internal || !parsed.teacher) {
+    throw new Error('生成フォーマットエラー。管理者にお問い合わせください。');
+  }
+  return parsed;
+}
+
+// ── 生成 ───────────────────────────────────────────
+async function generate() {
+  hideErr();
+  const childName = document.getElementById('child-name').value.trim();
+  const q2 = document.getElementById('q2').value.trim();
+  const q3 = document.getElementById('q3').value.trim();
+  const q4 = document.getElementById('q4').value.trim();
+  const q5 = document.getElementById('q5').value.trim();
+  const staff = getSelectedStaff();
+
+  if (!staff)     { showErr('記入者を選択してください。'); return; }
+  if (!childName) { showErr('児童名を入力してください。'); return; }
+  if (!goals.length) { showErr('ねらいを1つ以上追加してください。'); return; }
+  if (!q2)        { showErr('質問②（見られた姿）を入力してください。'); return; }
+
+  document.getElementById('gen-btn').disabled = true;
+  document.getElementById('form-area').style.display = 'none';
+  document.getElementById('loading').classList.add('show');
+
+  const userMsg =
+`【入力情報】※入力内容はすべて漏れなく記録に反映してください
+児童名：${childName}
+①今日のねらい：${goals.join('、')}
+②見られた姿・発言・エピソード：
+${q2}
+③行った支援・関わり：
+${q3 || '（未入力）'}
+④保護者に伝えたいエピソード：
+${q4 || '（未入力）'}
+⑤施設内記録（保護者向けには絶対含めない）：
+${q5 || '（未入力）'}`;
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildRequest(SYSTEM_PROMPT, userMsg))
+    });
+
+    let data;
+    try { data = await res.json(); } catch(e) {
+      throw new Error('サーバーエラー (' + res.status + ')。時間をおいて再度お試しください。');
+    }
+    if (!res.ok || data.error) {
+      throw new Error(data.error?.message || 'APIエラー: ' + res.status);
+    }
+
+    const parsed = parseResponse(data);
+    const outs = [parsed.guardian, parsed.internal, parsed.teacher];
+
+    stopTimer();
+    sendLog(staff, childName, { goals: goals.join('、'), q2, q3, q4, q5 }, outs, finalSeconds);
+    clearDraft();
+    showResult(outs, finalSeconds, staff);
+
+  } catch(e) {
+    stopTimer();
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('form-area').style.display = '';
+    document.getElementById('gen-btn').disabled = false;
+    showErr('エラーが発生しました：' + e.message);
+    startTimer();
+  }
+}
+
+// ── ポップアップ許可確認 ───────────────────────────
+function checkPopup() {
+  const w = window.open('about:blank', '_blank', 'width=10,height=10,left=-100,top=-100');
+  if (!w || w.closed || typeof w.closed === 'undefined') {
+    showErr('⚠️ ポップアップがブロックされています。\n\nブラウザのアドレスバー右端にあるブロックアイコンをタップして「許可」に変更してください。許可後にページを再読み込みしてからご使用ください。');
+  } else {
+    w.close();
+    showSuccess('✅ ポップアップは許可されています。正常に使用できます。');
+  }
+}
+
+// ── テストモーダル ─────────────────────────────────
+function openTestModal() {
+  document.getElementById('test-modal').classList.add('show');
+  document.getElementById('test-status').className = 'test-status running';
+  document.getElementById('test-status').textContent = '⏳ テスト中…';
+  document.getElementById('test-detail').innerHTML = '';
+  rawTestResponse = '';
+  runTest();
+}
+function closeTestModal() { document.getElementById('test-modal').classList.remove('show'); }
+function closeTestModalOutside(e) { if (e.target === document.getElementById('test-modal')) closeTestModal(); }
+
+function copyRawResponse() {
+  navigator.clipboard.writeText(rawTestResponse).then(() => {
+    const btn = document.querySelector('.modal-copy-btn');
+    if (!btn) return;
+    btn.textContent = '✅ コピーしました';
+    setTimeout(() => { btn.textContent = '📋 生のレスポンスをコピー'; }, 2000);
+  });
+}
+
+async function runTest() {
+  const testUser =
+`【入力情報】※入力内容はすべて漏れなく記録に反映してください
+児童名：テスト太郎くん
+①今日のねらい：お友だちとの関わり
+②見られた姿・発言・エピソード：
+積み木コーナーでAくんと一緒に塔を作ろうとする姿がみられた。積み木が崩れてしまった場面では「もう一回やろう」とAくんに声をかけ、二人で作り直す姿があった。「こうしたら？」と言葉で提案する場面もみられた。
+③行った支援・関わり：
+そばで見守りながら、やり取りが続くよう「いいね、どうする？」と声かけを行った。崩れた際に二人が互いの気持ちを確認できるよう「Aくんはどう思う？」と橋渡しをした。
+④保護者に伝えたいエピソード：
+（未入力）
+⑤施設内記録（保護者向けには絶対含めない）：
+（未入力）`;
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildRequest(SYSTEM_PROMPT, testUser))
+    });
+
+    let data;
+    try { data = await res.json(); } catch(e) {
+      showTestResult(false, '❌ サーバーエラー (' + res.status + ')\nNetlifyの処理時間制限（10秒）を超えた可能性があります。', '', null);
+      return;
+    }
+
+    if (!res.ok || data.error) {
+      const msg = data.error?.message || 'HTTPエラー ' + res.status;
+      showTestResult(false, '❌ API接続エラー: ' + msg, '', null);
+      return;
+    }
+
+    let rawText = '';
+    try { rawText = data.output?.[0]?.content?.[0]?.text || ''; } catch(e) {}
+    rawTestResponse = rawText;
+
+    if (!rawText) {
+      showTestResult(false, '❌ レスポンスが空です', JSON.stringify(data, null, 2), null);
+      return;
+    }
+
+    let parsed = null;
+    try {
+      parsed = JSON.parse(rawText);
+      if (!parsed.guardian || !parsed.internal || !parsed.teacher) parsed = null;
+    } catch(e) { parsed = null; }
+
+    if (parsed) {
+      showTestResult(true, '✅ 接続・解析ともに成功！本番でも動作するはずです。', rawText, parsed);
+    } else {
+      showTestResult(false, '⚠️ API接続は成功しましたが、出力の解析に失敗しました。\n下の「生のレスポンス」を管理者に共有してください。', rawText, null);
+    }
+
+  } catch(e) {
+    showTestResult(false, '❌ 通信エラー: ' + e.message, rawTestResponse, null);
+  }
+}
+
+function showTestResult(ok, statusMsg, rawText, parsed) {
+  const statusEl = document.getElementById('test-status');
+  statusEl.className = 'test-status ' + (ok ? 'ok' : 'ng');
+  statusEl.textContent = statusMsg;
+
+  let html = '';
+  if (parsed) {
+    html += '<div class="test-section-label">① 保護者向け（解析結果）</div>';
+    html += `<div class="test-parsed-item">${escapeHtml(parsed.guardian)}</div>`;
+    html += '<div class="test-section-label">② 内部施設記録（解析結果）</div>';
+    html += `<div class="test-parsed-item">${escapeHtml(parsed.internal)}</div>`;
+    html += '<div class="test-section-label">③ 担任共有用（解析結果）</div>';
+    html += `<div class="test-parsed-item">${escapeHtml(parsed.teacher)}</div>`;
+  }
+  if (rawText) {
+    html += '<div class="test-section-label">生のレスポンス（AIが実際に返したJSON）</div>';
+    html += `<div class="test-raw">${escapeHtml(rawText)}</div>`;
+    html += `<button class="modal-copy-btn" onclick="copyRawResponse()">📋 生のレスポンスをコピー</button>`;
+  }
+  document.getElementById('test-detail').innerHTML = html;
+}
+
+// ── PWA インストール ────────────────────────────────
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.style.display = 'flex';
+  // beforeinstallprompt が発火 = Android/PC なので iOS ヒントは不要
+  const hint = document.getElementById('ios-hint');
+  if (hint) hint.style.display = 'none';
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.style.display = 'none';
+});
+
+function installApp() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(() => {
+    deferredInstallPrompt = null;
+    const btn = document.getElementById('install-btn');
+    if (btn) btn.style.display = 'none';
+  });
+}
+
+// ── 初期化 ─────────────────────────────────────────
+fetch('/api/config')
+  .then(r => r.json())
+  .then(cfg => { window.__LOG_URL__ = cfg.logUrl || ''; window.__LOG_TOKEN__ = cfg.logToken || ''; })
+  .catch(() => {});
+
+// Service Worker 登録（PWA インストール要件）
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
+// iOS Safari 向けホーム画面追加ヒント（beforeinstallprompt は発火しない）
+(function() {
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.navigator.standalone === true;
+  if (isIOS && !isStandalone) {
+    const hint = document.getElementById('ios-hint');
+    if (hint) hint.style.display = 'block';
+  }
+})();
+
+restoreDraft();
+initAutoSave();
+startTimer();
+</script>
+</body>
+</html>

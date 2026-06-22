@@ -1,0 +1,23 @@
+{
+  "name": "みやのだいSEEDS 記録作成アシスタント",
+  "short_name": "SEEDS記録",
+  "description": "みやのだいSEEDS の支援記録作成アシスタント",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FBF7F2",
+  "theme_color": "#4A2C0C",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "app.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "app.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
